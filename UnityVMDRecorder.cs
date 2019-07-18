@@ -123,12 +123,12 @@ public class UnityVMDRecorder : MonoBehaviour
 
         if (BoneDictionary[BoneNames.左足ＩＫ] != null)
         {
-            LeftFootIKOffset += BoneDictionary[BoneNames.左足ＩＫ].position - transform.position;
+            LeftFootIKOffset = Quaternion.Inverse(transform.rotation) * (BoneDictionary[BoneNames.左足ＩＫ].position - transform.position);
         }
 
         if (BoneDictionary[BoneNames.右足ＩＫ] != null)
         {
-            RightFootIKOffset += BoneDictionary[BoneNames.右足ＩＫ].position - transform.position;
+            RightFootIKOffset = Quaternion.Inverse(transform.rotation) * (BoneDictionary[BoneNames.右足ＩＫ].position - transform.position);
         }
 
         boneGhost = new BoneGhost(animator, BoneDictionary); 
