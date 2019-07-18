@@ -1,0 +1,2 @@
+# UnityVMDRecorder
+Unity上の人アニメーションをランタイムでvmd(MMDのアニメーションファイル)に変換するためのコードです。
