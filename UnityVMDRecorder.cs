@@ -9,7 +9,8 @@ using System.Threading.Tasks;
 public class UnityVMDRecorder : MonoBehaviour
 {
     public bool UseParentOfAll = true;
-    public bool IgnoreInitialPositionAndRotation = false;
+    public bool IgnoreInitialPosition = false;
+    public bool IgnoreInitialRotation = false;
     public bool IsRecording { get; private set; } = false;
     public int FrameNumber { get; private set; } = 0;
     int frameNumberSaved = 0;
@@ -41,7 +42,7 @@ public class UnityVMDRecorder : MonoBehaviour
     public Vector3 LeftFootIKOffset = Vector3.zero;
     public Vector3 RightFootIKOffset = Vector3.zero;
 
-    private Animator animator;
+    Animator animator;
     BoneGhost boneGhost;
 
     // Start is called before the first frame update
@@ -131,7 +132,7 @@ public class UnityVMDRecorder : MonoBehaviour
             RightFootIKOffset = Quaternion.Inverse(transform.rotation) * (BoneDictionary[BoneNames.右足ＩＫ].position - transform.position);
         }
 
-        boneGhost = new BoneGhost(animator, BoneDictionary); 
+        boneGhost = new BoneGhost(animator, BoneDictionary);
     }
 
     private void FixedUpdate()
@@ -200,7 +201,7 @@ public class UnityVMDRecorder : MonoBehaviour
                 Quaternion boneQuatenion = boneGhost.GhostDictionary[boneName].ghost.localRotation;
                 localRotationDictionary[boneName].Add(new Quaternion(-boneQuatenion.x, boneQuatenion.y, -boneQuatenion.z, boneQuatenion.w));
 
-                boneVector -= boneGhost.OriginalGhostLocalPositionDictionary[boneName];
+                boneVector -= boneGhost.GhostOriginalLocalPositionDictionary[boneName];
 
                 localPositionDictionary[boneName].Add(new Vector3(-boneVector.x, boneVector.y, -boneVector.z) * DefaultBoneAmplifier);
                 continue;
@@ -208,7 +209,7 @@ public class UnityVMDRecorder : MonoBehaviour
 
             Quaternion fixedQuatenion = Quaternion.identity;
             Quaternion vmdRotation = Quaternion.identity;
-            if (boneName == BoneNames.全ての親 && !IgnoreInitialPositionAndRotation)
+            if (boneName == BoneNames.全ての親 && !IgnoreInitialRotation)
             {
                 vmdRotation = new Quaternion(
                     -BoneDictionary[boneName].localRotation.x,
@@ -225,7 +226,7 @@ public class UnityVMDRecorder : MonoBehaviour
 
             Vector3 fixedPosition = Vector3.zero;
             Vector3 vmdPosition = Vector3.zero;
-            if (boneName == BoneNames.全ての親 && !IgnoreInitialPositionAndRotation)
+            if (boneName == BoneNames.全ての親 && !IgnoreInitialPosition)
             {
                 vmdPosition = new Vector3(
                 -BoneDictionary[boneName].localPosition.x,
@@ -396,9 +397,9 @@ public class UnityVMDRecorder : MonoBehaviour
     class BoneGhost
     {
         public Dictionary<BoneNames, (Transform ghost, bool enabled)> GhostDictionary { get; private set; } = new Dictionary<BoneNames, (Transform ghost, bool enabled)>();
-        public Dictionary<BoneNames, Vector3> OriginalGhostLocalPositionDictionary { get; private set; } = new Dictionary<BoneNames, Vector3>();
+        public Dictionary<BoneNames, Vector3> GhostOriginalLocalPositionDictionary { get; private set; } = new Dictionary<BoneNames, Vector3>();
+        public Dictionary<BoneNames, Quaternion> GhostOriginalRotationDictionary { get; private set; } = new Dictionary<BoneNames, Quaternion>();
         public Dictionary<BoneNames, Quaternion> OriginalRotationDictionary { get; private set; } = new Dictionary<BoneNames, Quaternion>();
-        public Dictionary<BoneNames, Quaternion> OriginalGhostRotationDictionary { get; private set; } = new Dictionary<BoneNames, Quaternion>();
 
         private Dictionary<BoneNames, Transform> boneDictionary = new Dictionary<BoneNames, Transform>();
 
@@ -466,7 +467,7 @@ public class UnityVMDRecorder : MonoBehaviour
                 if (boneName == BoneNames.全ての親 || boneName == BoneNames.左足ＩＫ || boneName == BoneNames.右足ＩＫ)
                 {
                     continue;
-                } 
+                }
 
                 if (boneDictionary[boneName] == null)
                 {
@@ -521,14 +522,14 @@ public class UnityVMDRecorder : MonoBehaviour
             {
                 if (GhostDictionary[boneName].ghost == null || !GhostDictionary[boneName].enabled)
                 {
-                    OriginalGhostLocalPositionDictionary.Add(boneName, Vector3.zero);
-                    OriginalGhostRotationDictionary.Add(boneName, Quaternion.identity);
+                    GhostOriginalLocalPositionDictionary.Add(boneName, Vector3.zero);
+                    GhostOriginalRotationDictionary.Add(boneName, Quaternion.identity);
                     OriginalRotationDictionary.Add(boneName, Quaternion.identity);
                 }
                 else
                 {
-                    OriginalGhostLocalPositionDictionary.Add(boneName, GhostDictionary[boneName].ghost.localPosition);
-                    OriginalGhostRotationDictionary.Add(boneName, GhostDictionary[boneName].ghost.rotation);
+                    GhostOriginalLocalPositionDictionary.Add(boneName, GhostDictionary[boneName].ghost.localPosition);
+                    GhostOriginalRotationDictionary.Add(boneName, GhostDictionary[boneName].ghost.rotation);
                     OriginalRotationDictionary.Add(boneName, boneDictionary[boneName].rotation);
                 }
             }
@@ -541,7 +542,7 @@ public class UnityVMDRecorder : MonoBehaviour
                 if (GhostDictionary[boneName].ghost == null || !GhostDictionary[boneName].enabled) { return; }
                 GhostDictionary[boneName].ghost.position = boneDictionary[boneName].position;
                 Quaternion transQuaternion = boneDictionary[boneName].rotation * Quaternion.Inverse(OriginalRotationDictionary[boneName]);
-                GhostDictionary[boneName].ghost.rotation = transQuaternion * OriginalGhostRotationDictionary[boneName];
+                GhostDictionary[boneName].ghost.rotation = transQuaternion * GhostOriginalRotationDictionary[boneName];
             }
         }
     }
