@@ -11,6 +11,7 @@ public class UnityVMDRecorder : MonoBehaviour
     public bool UseParentOfAll = true;
     public bool IgnoreInitialPosition = false;
     public bool IgnoreInitialRotation = false;
+    public bool TrimMorphNumber = true;
     public bool IsRecording { get; private set; } = false;
     public int FrameNumber { get; private set; } = 0;
     int frameNumberSaved = 0;
@@ -44,6 +45,8 @@ public class UnityVMDRecorder : MonoBehaviour
 
     Animator animator;
     BoneGhost boneGhost;
+    MorphRecorder morphRecorder;
+    MorphRecorder morphRecorderSaved;
 
     // Start is called before the first frame update
     void Start()
@@ -133,6 +136,7 @@ public class UnityVMDRecorder : MonoBehaviour
         }
 
         boneGhost = new BoneGhost(animator, BoneDictionary);
+        morphRecorder = new MorphRecorder(transform);
     }
 
     private void FixedUpdate()
@@ -157,16 +161,19 @@ public class UnityVMDRecorder : MonoBehaviour
     {
         IsRecording = false;
         frameNumberSaved = FrameNumber;
+        morphRecorderSaved = morphRecorder;
         FrameNumber = 0;
         localPositionDictionarySaved = localPositionDictionary;
         localPositionDictionary = new Dictionary<BoneNames, List<Vector3>>();
         localRotationDictionarySaved = localRotationDictionary;
         localRotationDictionary = new Dictionary<BoneNames, List<Quaternion>>();
+        morphRecorder = new MorphRecorder(transform);
     }
 
     void SaveFrame()
     {
         if (boneGhost != null) { boneGhost.GhostAll(); }
+        if (morphRecorder != null) { morphRecorder.RecrodAllMorph(); }
 
         foreach (BoneNames boneName in BoneDictionary.Keys)
         {
@@ -282,7 +289,7 @@ public class UnityVMDRecorder : MonoBehaviour
                     binaryWriter.Write(motionNameBytes, 0, motionNameBytes.Length);
                     binaryWriter.Write(new byte[motionNameLength - motionNameBytes.Length], 0, motionNameLength - motionNameBytes.Length);
 
-                    //全キーフレーム数の書き込み
+                    //全ボーンフレーム数の書き込み
                     uint allKeyFrameNumber = (uint)frameNumberSaved * (uint)BoneDictionary.Count;
                     byte[] allKeyFrameNumberByte = BitConverter.GetBytes((uint)allKeyFrameNumber);
                     binaryWriter.Write(allKeyFrameNumberByte, 0, intByteLength);
@@ -332,9 +339,36 @@ public class UnityVMDRecorder : MonoBehaviour
                         }
                     }
 
-                    //表情モーフの書き込み
-                    byte[] faceFrameCount = BitConverter.GetBytes(0);
+                    //全モーフフレーム数の書き込み
+                    morphRecorderSaved.DisableIntron();
+                    byte[] faceFrameCount = BitConverter.GetBytes(morphRecorderSaved.GetFrameCount());
                     binaryWriter.Write(faceFrameCount, 0, intByteLength);
+
+                    //モーフの書き込み
+                    if (TrimMorphNumber) { morphRecorderSaved.TrimMorphNumber(); }
+                    for (int i = 0; i < frameNumberSaved; i++)
+                    {
+                        foreach (string morphName in morphRecorderSaved.MorphDrivers.Keys)
+                        {
+                            if (morphRecorderSaved.MorphDrivers[morphName].ValueList.Count == 0) { continue; }
+                            if (i > morphRecorderSaved.MorphDrivers[morphName].ValueList.Count) { continue; }
+                            //変化のない部分は省く
+                            if (!morphRecorderSaved.MorphDrivers[morphName].ValueList[i].enabled) { continue; }
+                            const int boneNameLength = 15;
+                            string morphNameString = morphName.ToString();
+                            byte[] morphNameBytes = System.Text.Encoding.GetEncoding(ShiftJIS).GetBytes(morphNameString);
+                            //名前が長過ぎた場合書き込まない
+                            if (boneNameLength - morphNameBytes.Length < 0) { continue; }
+                            binaryWriter.Write(morphNameBytes, 0, morphNameBytes.Length);
+                            binaryWriter.Write(new byte[boneNameLength - morphNameBytes.Length], 0, boneNameLength - morphNameBytes.Length);
+
+                            byte[] frameNumberByte = BitConverter.GetBytes((ulong)i);
+                            binaryWriter.Write(frameNumberByte, 0, intByteLength);
+
+                            byte[] valueByte = BitConverter.GetBytes(morphRecorderSaved.MorphDrivers[morphName].ValueList[i].value);
+                            binaryWriter.Write(valueByte, 0, intByteLength);
+                        }
+                    }
 
                     //カメラの書き込み
                     byte[] cameraFrameCount = BitConverter.GetBytes(0);
@@ -344,7 +378,7 @@ public class UnityVMDRecorder : MonoBehaviour
                     byte[] lightFrameCount = BitConverter.GetBytes(0);
                     binaryWriter.Write(lightFrameCount, 0, intByteLength);
 
-                    //照明の書き込み
+                    //セルフシャドウの書き込み
                     byte[] selfShadowCount = BitConverter.GetBytes(0);
                     binaryWriter.Write(selfShadowCount, 0, intByteLength);
 
@@ -543,6 +577,122 @@ public class UnityVMDRecorder : MonoBehaviour
                 GhostDictionary[boneName].ghost.position = boneDictionary[boneName].position;
                 Quaternion transQuaternion = boneDictionary[boneName].rotation * Quaternion.Inverse(OriginalRotationDictionary[boneName]);
                 GhostDictionary[boneName].ghost.rotation = transQuaternion * GhostOriginalRotationDictionary[boneName];
+            }
+        }
+    }
+
+    class MorphRecorder 
+    {
+        List<SkinnedMeshRenderer> skinnedMeshRendererList;
+        //キーはunity上のモーフ名
+        public Dictionary<string, MorphDriver> MorphDrivers { get; private set; } = new Dictionary<string, MorphDriver>();
+
+        public MorphRecorder(Transform model)
+        {
+            List<SkinnedMeshRenderer> searchBlendShapeSkins(Transform t)
+            {
+                List<SkinnedMeshRenderer> skinnedMeshRendererList = new List<SkinnedMeshRenderer>();
+                Queue queue = new Queue();
+                queue.Enqueue(t);
+                while (queue.Count != 0)
+                {
+                    SkinnedMeshRenderer skinnedMeshRenderer = (queue.Peek() as Transform).GetComponent<SkinnedMeshRenderer>();
+
+                    if (skinnedMeshRenderer != null && skinnedMeshRenderer.sharedMesh.blendShapeCount != 0)
+                    {
+                        skinnedMeshRendererList.Add(skinnedMeshRenderer);
+                    }
+
+                    foreach (Transform childT in (queue.Dequeue() as Transform))
+                    {
+                        queue.Enqueue(childT);
+                    }
+                }
+
+                return skinnedMeshRendererList;
+            }
+            skinnedMeshRendererList = searchBlendShapeSkins(model);
+
+            foreach (SkinnedMeshRenderer skinnedMeshRenderer in skinnedMeshRendererList)
+            {
+                int morphCount = skinnedMeshRenderer.sharedMesh.blendShapeCount;
+                for (int i = 0; i < morphCount; i++)
+                {
+                    string morphName = skinnedMeshRenderer.sharedMesh.GetBlendShapeName(i);
+                    ////モーフ名に重複があれば2コ目以降は無視
+                    if (MorphDrivers.Keys.Contains(morphName)) { continue; }
+                    MorphDrivers.Add(morphName, new MorphDriver(skinnedMeshRenderer, i));
+                }
+            }
+        }
+
+        public void RecrodAllMorph()
+        {
+            foreach (MorphDriver morphDriver in MorphDrivers.Values)
+            {
+                morphDriver.RecordMorph();
+            }
+        }
+
+        public void TrimMorphNumber()
+        {
+            string dot = ".";
+            Dictionary<string, MorphDriver> morphDriversTemp = new Dictionary<string, MorphDriver>();
+            foreach (string morphName in MorphDrivers.Keys)
+            {
+                //正規表現使うより、dot探して整数か見る
+                if (morphName.Contains(dot) && int.TryParse(morphName.Substring(0, morphName.IndexOf(dot)), out int dummy))
+                {
+                    morphDriversTemp.Add(morphName.Substring(morphName.IndexOf(dot) + 1), MorphDrivers[morphName]);
+                    continue;
+                }
+                morphDriversTemp.Add(morphName, MorphDrivers[morphName]);
+            }
+            MorphDrivers = morphDriversTemp;
+        }
+
+        public void DisableIntron()
+        {
+            foreach (string morphName in MorphDrivers.Keys)
+            {
+                for (int i = 0; i < MorphDrivers[morphName].ValueList.Count; i++)
+                {   
+                    //情報がなければ次へ
+                    if (MorphDrivers[morphName].ValueList.Count == 0) { continue; }
+                    //今、前、後が同じなら不必要なので無効可
+                    if (i > 0
+                        && i < MorphDrivers[morphName].ValueList.Count - 1
+                        && MorphDrivers[morphName].ValueList[i].value == MorphDrivers[morphName].ValueList[i - 1].value
+                        && MorphDrivers[morphName].ValueList[i].value == MorphDrivers[morphName].ValueList[i + 1].value)
+                    {
+                        MorphDrivers[morphName].ValueList[i] = (MorphDrivers[morphName].ValueList[i].value, false);
+                    }
+                }
+            }
+        }
+
+        public int GetFrameCount()
+        {
+            return MorphDrivers.Values.ToList().Sum(x => x.ValueList.Count);
+        }
+
+        public class MorphDriver
+        {
+            const float MorphAmplifier = 0.01f;
+            public SkinnedMeshRenderer SkinnedMeshRenderer { get; private set; } = new SkinnedMeshRenderer();
+            public int MorphIndex { get; private set; }
+
+            public List<(float value, bool enabled)> ValueList { get; private set; } = new List<(float value, bool enabled)>();
+
+            public MorphDriver(SkinnedMeshRenderer skinnedMeshRenderer, int morphIndex)
+            {
+                SkinnedMeshRenderer = skinnedMeshRenderer;
+                MorphIndex = morphIndex;
+            }
+
+            public void RecordMorph()
+            {
+                ValueList.Add((SkinnedMeshRenderer.GetBlendShapeWeight(MorphIndex) * MorphAmplifier, true));
             }
         }
     }
