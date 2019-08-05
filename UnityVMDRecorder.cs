@@ -148,7 +148,7 @@ public class UnityVMDRecorder : MonoBehaviour
         }
     }
 
-    public void SetFPS(int fps)
+    public static void SetFPS(int fps)
     {
         Time.fixedDeltaTime = 1 / (float)fps;
     }
@@ -581,7 +581,7 @@ public class UnityVMDRecorder : MonoBehaviour
         }
     }
 
-    class MorphRecorder 
+    class MorphRecorder
     {
         List<SkinnedMeshRenderer> skinnedMeshRendererList;
         //キーはunity上のモーフ名
@@ -656,7 +656,7 @@ public class UnityVMDRecorder : MonoBehaviour
             foreach (string morphName in MorphDrivers.Keys)
             {
                 for (int i = 0; i < MorphDrivers[morphName].ValueList.Count; i++)
-                {   
+                {
                     //情報がなければ次へ
                     if (MorphDrivers[morphName].ValueList.Count == 0) { continue; }
                     //今、前、後が同じなら不必要なので無効可
