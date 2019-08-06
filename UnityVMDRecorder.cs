@@ -592,7 +592,7 @@ public class UnityVMDRecorder : MonoBehaviour
                 GhostDictionary[boneName].ghost.rotation = transQuaternion * GhostOriginalRotationDictionary[boneName];
                 if (boneName == BoneNames.センター)
                 {
-                    GhostDictionary[boneName].ghost.position = boneDictionary[boneName].position - centerOffsetLength * boneDictionary[boneName].up;
+                    GhostDictionary[boneName].ghost.position = boneDictionary[boneName].position - centerOffsetLength * GhostDictionary[boneName].ghost.up;
                     continue;
                 }
                 GhostDictionary[boneName].ghost.position = boneDictionary[boneName].position;
