@@ -29,8 +29,8 @@ public class UnityVMDRecorder : MonoBehaviour
     }
     //コンストラクタにて初期化
     public Dictionary<BoneNames, Transform> BoneDictionary { get; private set; }
-    Dictionary<BoneNames, Vector3> originalLocalPositionDictionary = new Dictionary<BoneNames, Vector3>();
-    Dictionary<BoneNames, Quaternion> originalLocalRotationDictionary = new Dictionary<BoneNames, Quaternion>();
+    Vector3 parentOriginalLocalPosition = Vector3.zero;
+    Quaternion parentOriginalLocalRotation = Quaternion.identity;
     Dictionary<BoneNames, List<Vector3>> localPositionDictionary = new Dictionary<BoneNames, List<Vector3>>();
     Dictionary<BoneNames, List<Vector3>> localPositionDictionarySaved = new Dictionary<BoneNames, List<Vector3>>();
     Dictionary<BoneNames, List<Quaternion>> localRotationDictionary = new Dictionary<BoneNames, List<Quaternion>>();
@@ -110,13 +110,10 @@ public class UnityVMDRecorder : MonoBehaviour
                 //{ BoneNames.左つま先,   (animator.GetBoneTransform(HumanBodyBones.LeftToes))},
                 //{ BoneNames.右つま先,   (animator.GetBoneTransform(HumanBodyBones.RightToes))}
         };
-        foreach (BoneNames boneName in BoneDictionary.Keys)
-        {
-            if (BoneDictionary[boneName] == null) { continue; }
 
-            originalLocalPositionDictionary.Add(boneName, BoneDictionary[boneName].localPosition);
-            originalLocalRotationDictionary.Add(boneName, BoneDictionary[boneName].localRotation);
-        }
+        parentOriginalLocalPosition = transform.localPosition;
+        parentOriginalLocalRotation = transform.localRotation;
+
         foreach (BoneNames boneName in BoneDictionary.Keys)
         {
             if (BoneDictionary[boneName] == null) { continue; }
@@ -226,7 +223,7 @@ public class UnityVMDRecorder : MonoBehaviour
             }
             else
             {
-                fixedQuatenion = BoneDictionary[boneName].localRotation.MinusRotation(originalLocalRotationDictionary[boneName]);
+                fixedQuatenion = BoneDictionary[boneName].localRotation.MinusRotation(parentOriginalLocalRotation);
                 vmdRotation = new Quaternion(-fixedQuatenion.x, fixedQuatenion.y, -fixedQuatenion.z, fixedQuatenion.w);
             }
             localRotationDictionary[boneName].Add(vmdRotation);
@@ -243,9 +240,9 @@ public class UnityVMDRecorder : MonoBehaviour
             else
             {
                 fixedPosition = new Vector3(
-                    BoneDictionary[boneName].localPosition.x - originalLocalPositionDictionary[boneName].x,
-                    BoneDictionary[boneName].localPosition.y - originalLocalPositionDictionary[boneName].y,
-                    BoneDictionary[boneName].localPosition.z - originalLocalPositionDictionary[boneName].z);
+                    BoneDictionary[boneName].localPosition.x - parentOriginalLocalPosition.x,
+                    BoneDictionary[boneName].localPosition.y - parentOriginalLocalPosition.y,
+                    BoneDictionary[boneName].localPosition.z - parentOriginalLocalPosition.z);
 
                 vmdPosition = new Vector3(-fixedPosition.x, fixedPosition.y, -fixedPosition.z);
             }
