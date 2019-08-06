@@ -673,7 +673,7 @@ public class UnityVMDRecorder : MonoBehaviour
 
         public int GetFrameCount()
         {
-            return MorphDrivers.Values.ToList().Sum(x => x.ValueList.Count);
+            return MorphDrivers.Values.ToList().Sum(x => x.ValueList.Where(y => y.enabled).Count());
         }
 
         public class MorphDriver
