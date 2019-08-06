@@ -56,7 +56,7 @@ public class UnityVMDRecorder : MonoBehaviour
         BoneDictionary = new Dictionary<BoneNames, Transform>()
             {
                 //下半身などというものはUnityにはない
-                { BoneNames.全ての親, (animator.transform) },
+                { BoneNames.全ての親, (transform) },
                 { BoneNames.センター, (animator.GetBoneTransform(HumanBodyBones.Hips))},
                 { BoneNames.上半身,   (animator.GetBoneTransform(HumanBodyBones.Spine))},
                 { BoneNames.上半身2,  (animator.GetBoneTransform(HumanBodyBones.Chest))},
@@ -181,7 +181,7 @@ public class UnityVMDRecorder : MonoBehaviour
 
             if (boneName == BoneNames.右足ＩＫ || boneName == BoneNames.左足ＩＫ)
             {
-                Vector3 targetVector = BoneDictionary[boneName].position - animator.transform.position;
+                Vector3 targetVector = BoneDictionary[boneName].position - transform.position;
                 targetVector = Quaternion.Inverse(transform.rotation) * targetVector;
                 targetVector -= (boneName == BoneNames.左足ＩＫ ? LeftFootIKOffset : RightFootIKOffset);
                 Vector3 ikPosition = new Vector3(-targetVector.x, targetVector.y, -targetVector.z);
