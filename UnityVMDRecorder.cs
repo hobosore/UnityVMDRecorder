@@ -11,6 +11,14 @@ public class UnityVMDRecorder : MonoBehaviour
     public bool UseParentOfAll = true;
     public bool IgnoreInitialPosition = false;
     public bool IgnoreInitialRotation = false;
+    /// <summary>
+    /// 一部のモデルではMMD上ではセンターが足元にある
+    /// Start前に設定されている必要がある
+    /// </summary>
+    public bool UseBottomCenter = false;
+    /// <summary>
+    /// Unity上のモーフ名に1.まばたきなど番号が振られている場合、除去する
+    /// </summary>
     public bool TrimMorphNumber = true;
     public bool IsRecording { get; private set; } = false;
     public int FrameNumber { get; private set; } = 0;
@@ -132,7 +140,7 @@ public class UnityVMDRecorder : MonoBehaviour
             RightFootIKOffset = Quaternion.Inverse(transform.rotation) * (BoneDictionary[BoneNames.右足ＩＫ].position - transform.position);
         }
 
-        boneGhost = new BoneGhost(animator, BoneDictionary);
+        boneGhost = new BoneGhost(animator, BoneDictionary, UseBottomCenter);
         morphRecorder = new MorphRecorder(transform);
     }
 
@@ -432,15 +440,16 @@ public class UnityVMDRecorder : MonoBehaviour
         public Dictionary<BoneNames, Quaternion> GhostOriginalRotationDictionary { get; private set; } = new Dictionary<BoneNames, Quaternion>();
         public Dictionary<BoneNames, Quaternion> OriginalRotationDictionary { get; private set; } = new Dictionary<BoneNames, Quaternion>();
 
-        private Dictionary<BoneNames, Transform> boneDictionary = new Dictionary<BoneNames, Transform>();
+        public bool UseBottomCenter { get; private set; } = false;
 
         const string GhostSalt = "Ghost";
-
+        private Dictionary<BoneNames, Transform> boneDictionary = new Dictionary<BoneNames, Transform>();
         float centerOffsetLength = 0;
 
-        public BoneGhost(Animator animator, Dictionary<BoneNames, Transform> boneDictionary)
+        public BoneGhost(Animator animator, Dictionary<BoneNames, Transform> boneDictionary, bool useBottomCenter)
         {
             this.boneDictionary = boneDictionary;
+            UseBottomCenter = useBottomCenter;
 
             Dictionary<BoneNames, (BoneNames optionParent1, BoneNames optionParent2, BoneNames necessaryParent)> boneParentDictionary
                 = new Dictionary<BoneNames, (BoneNames optionParent1, BoneNames optionParent2, BoneNames necessaryParent)>()
@@ -509,7 +518,7 @@ public class UnityVMDRecorder : MonoBehaviour
                 }
 
                 Transform ghost = new GameObject(boneDictionary[boneName].name + GhostSalt).transform;
-                if (boneName == BoneNames.センター)
+                if (boneName == BoneNames.センター && UseBottomCenter)
                 {
                     ghost.position = boneDictionary[BoneNames.全ての親].position;
                 }
@@ -571,7 +580,7 @@ public class UnityVMDRecorder : MonoBehaviour
                 {
                     GhostOriginalRotationDictionary.Add(boneName, GhostDictionary[boneName].ghost.rotation);
                     OriginalRotationDictionary.Add(boneName, boneDictionary[boneName].rotation);
-                    if (boneName == BoneNames.センター)
+                    if (boneName == BoneNames.センター && UseBottomCenter)
                     {
                         GhostOriginalLocalPositionDictionary.Add(boneName, Vector3.zero);
                         continue;
@@ -590,7 +599,7 @@ public class UnityVMDRecorder : MonoBehaviour
                 if (GhostDictionary[boneName].ghost == null || !GhostDictionary[boneName].enabled) { return; }
                 Quaternion transQuaternion = boneDictionary[boneName].rotation * Quaternion.Inverse(OriginalRotationDictionary[boneName]);
                 GhostDictionary[boneName].ghost.rotation = transQuaternion * GhostOriginalRotationDictionary[boneName];
-                if (boneName == BoneNames.センター)
+                if (boneName == BoneNames.センター && UseBottomCenter)
                 {
                     GhostDictionary[boneName].ghost.position = boneDictionary[boneName].position - centerOffsetLength * GhostDictionary[boneName].ghost.up;
                     continue;
