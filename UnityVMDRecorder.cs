@@ -37,7 +37,7 @@ public class UnityVMDRecorder : MonoBehaviour
     Dictionary<BoneNames, List<Quaternion>> localRotationDictionarySaved = new Dictionary<BoneNames, List<Quaternion>>();
     //ボーン移動量の補正係数
     //この値は大体の値、改良の余地あり
-    const float DefaultBoneAmplifier = 16.5f;
+    const float DefaultBoneAmplifier = 12.5f;
 
     public Vector3 ParentOfAllOffset = new Vector3(0, 0, 0);
     public Vector3 LeftFootIKOffset = Vector3.zero;
@@ -439,6 +439,8 @@ public class UnityVMDRecorder : MonoBehaviour
 
         const string GhostSalt = "Ghost";
 
+        float centerOffsetLength = 0;
+
         public BoneGhost(Animator animator, Dictionary<BoneNames, Transform> boneDictionary)
         {
             this.boneDictionary = boneDictionary;
@@ -510,7 +512,14 @@ public class UnityVMDRecorder : MonoBehaviour
                 }
 
                 Transform ghost = new GameObject(boneDictionary[boneName].name + GhostSalt).transform;
-                ghost.position = boneDictionary[boneName].position;
+                if (boneName == BoneNames.センター)
+                {
+                    ghost.position = boneDictionary[BoneNames.全ての親].position;
+                }
+                else
+                {
+                    ghost.position = boneDictionary[boneName].position;
+                }
                 ghost.rotation = animator.transform.rotation;
                 GhostDictionary.Add(boneName, (ghost, true));
             }
@@ -552,6 +561,7 @@ public class UnityVMDRecorder : MonoBehaviour
                 }
             }
 
+            //初期状態を保存
             foreach (BoneNames boneName in GhostDictionary.Keys)
             {
                 if (GhostDictionary[boneName].ghost == null || !GhostDictionary[boneName].enabled)
@@ -562,11 +572,18 @@ public class UnityVMDRecorder : MonoBehaviour
                 }
                 else
                 {
-                    GhostOriginalLocalPositionDictionary.Add(boneName, GhostDictionary[boneName].ghost.localPosition);
                     GhostOriginalRotationDictionary.Add(boneName, GhostDictionary[boneName].ghost.rotation);
                     OriginalRotationDictionary.Add(boneName, boneDictionary[boneName].rotation);
+                    if (boneName == BoneNames.センター)
+                    {
+                        GhostOriginalLocalPositionDictionary.Add(boneName, Vector3.zero);
+                        continue;
+                    }
+                    GhostOriginalLocalPositionDictionary.Add(boneName, GhostDictionary[boneName].ghost.localPosition);
                 }
             }
+
+            centerOffsetLength = Vector3.Distance(boneDictionary[BoneNames.全ての親].position, boneDictionary[BoneNames.センター].position);
         }
 
         public void GhostAll()
@@ -574,9 +591,14 @@ public class UnityVMDRecorder : MonoBehaviour
             foreach (BoneNames boneName in GhostDictionary.Keys)
             {
                 if (GhostDictionary[boneName].ghost == null || !GhostDictionary[boneName].enabled) { return; }
-                GhostDictionary[boneName].ghost.position = boneDictionary[boneName].position;
                 Quaternion transQuaternion = boneDictionary[boneName].rotation * Quaternion.Inverse(OriginalRotationDictionary[boneName]);
                 GhostDictionary[boneName].ghost.rotation = transQuaternion * GhostOriginalRotationDictionary[boneName];
+                if (boneName == BoneNames.センター)
+                {
+                    GhostDictionary[boneName].ghost.position = boneDictionary[boneName].position - centerOffsetLength * boneDictionary[boneName].up;
+                    continue;
+                }
+                GhostDictionary[boneName].ghost.position = boneDictionary[boneName].position;
             }
         }
     }
