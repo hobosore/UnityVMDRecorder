@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
+//初期ポーズ(T,Aポーズ)の時点でアタッチ、有効化されている必要がある
 public class UnityVMDRecorder : MonoBehaviour
 {
     public bool UseParentOfAll = true;
@@ -153,28 +154,6 @@ public class UnityVMDRecorder : MonoBehaviour
         }
     }
 
-    public static void SetFPS(int fps)
-    {
-        Time.fixedDeltaTime = 1 / (float)fps;
-    }
-
-    public void StartRecording() { IsRecording = true; }
-
-    public void PauseRecording() { IsRecording = false; }
-
-    public void StopRecording()
-    {
-        IsRecording = false;
-        frameNumberSaved = FrameNumber;
-        morphRecorderSaved = morphRecorder;
-        FrameNumber = 0;
-        localPositionDictionarySaved = localPositionDictionary;
-        localPositionDictionary = new Dictionary<BoneNames, List<Vector3>>();
-        localRotationDictionarySaved = localRotationDictionary;
-        localRotationDictionary = new Dictionary<BoneNames, List<Quaternion>>();
-        morphRecorder = new MorphRecorder(transform);
-    }
-
     void SaveFrame()
     {
         if (boneGhost != null) { boneGhost.GhostAll(); }
@@ -262,6 +241,43 @@ public class UnityVMDRecorder : MonoBehaviour
         }
     }
 
+    public static void SetFPS(int fps)
+    {
+        Time.fixedDeltaTime = 1 / (float)fps;
+    }
+
+    /// <summary>
+    /// レコーディングを開始
+    /// </summary>
+    public void StartRecording() { IsRecording = true; }
+
+    /// <summary>
+    /// レコーディングを一時停止
+    /// </summary>
+    public void PauseRecording() { IsRecording = false; }
+
+    /// <summary>
+    /// レコーディングを終了
+    /// </summary>
+    public void StopRecording()
+    {
+        IsRecording = false;
+        frameNumberSaved = FrameNumber;
+        morphRecorderSaved = morphRecorder;
+        FrameNumber = 0;
+        localPositionDictionarySaved = localPositionDictionary;
+        localPositionDictionary = new Dictionary<BoneNames, List<Vector3>>();
+        localRotationDictionarySaved = localRotationDictionary;
+        localRotationDictionary = new Dictionary<BoneNames, List<Quaternion>>();
+        morphRecorder = new MorphRecorder(transform);
+    }
+
+    /// <summary>
+    /// VMDを作成する
+    /// 呼び出す際は先にStopRecordingを呼び出すこと
+    /// </summary>
+    /// <param name="modelName">VMDファイルに記載される専用モデル名</param>
+    /// <param name="filePath">保存先の絶対ファイルパス</param>
     public async void SaveVMD(string modelName, string filePath)
     {
         if (IsRecording)
