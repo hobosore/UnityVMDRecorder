@@ -247,7 +247,7 @@ public class UnityVMDRecorder : MonoBehaviour
     }
 
     /// <summary>
-    /// レコーディングを開始
+    /// レコーディングを開始または再開
     /// </summary>
     public void StartRecording() { IsRecording = true; }
 
@@ -269,6 +269,13 @@ public class UnityVMDRecorder : MonoBehaviour
         localPositionDictionary = new Dictionary<BoneNames, List<Vector3>>();
         localRotationDictionarySaved = localRotationDictionary;
         localRotationDictionary = new Dictionary<BoneNames, List<Quaternion>>();
+        foreach (BoneNames boneName in BoneDictionary.Keys)
+        {
+            if (BoneDictionary[boneName] == null) { continue; }
+
+            localPositionDictionary.Add(boneName, new List<Vector3>());
+            localRotationDictionary.Add(boneName, new List<Quaternion>());
+        }
         morphRecorder = new MorphRecorder(transform);
     }
 
