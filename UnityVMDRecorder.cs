@@ -10,6 +10,11 @@ using System.Threading.Tasks;
 public class UnityVMDRecorder : MonoBehaviour
 {
     public bool UseParentOfAll = true;
+    /// <summary>
+    /// 全ての親の座標・回転を絶対座標系で計算する
+    /// UseParentOfAllがTrueでないと意味がない
+    /// </summary>
+    public bool UseAbsoluteCoordinateSystem = true;
     public bool IgnoreInitialPosition = false;
     public bool IgnoreInitialRotation = false;
     /// <summary>
@@ -38,8 +43,8 @@ public class UnityVMDRecorder : MonoBehaviour
     }
     //コンストラクタにて初期化
     public Dictionary<BoneNames, Transform> BoneDictionary { get; private set; }
-    Vector3 parentOriginalLocalPosition = Vector3.zero;
-    Quaternion parentOriginalLocalRotation = Quaternion.identity;
+    Vector3 parentOriginalPosition = Vector3.zero;
+    Quaternion parentOriginalRotation = Quaternion.identity;
     Dictionary<BoneNames, List<Vector3>> localPositionDictionary = new Dictionary<BoneNames, List<Vector3>>();
     Dictionary<BoneNames, List<Vector3>> localPositionDictionarySaved = new Dictionary<BoneNames, List<Vector3>>();
     Dictionary<BoneNames, List<Quaternion>> localRotationDictionary = new Dictionary<BoneNames, List<Quaternion>>();
@@ -120,8 +125,16 @@ public class UnityVMDRecorder : MonoBehaviour
                 //{ BoneNames.右つま先,   (animator.GetBoneTransform(HumanBodyBones.RightToes))}
         };
 
-        parentOriginalLocalPosition = transform.localPosition;
-        parentOriginalLocalRotation = transform.localRotation;
+        if (UseAbsoluteCoordinateSystem)
+        {
+            parentOriginalPosition = transform.position;
+            parentOriginalRotation = transform.rotation;
+        }
+        else
+        {
+            parentOriginalPosition = transform.localPosition;
+            parentOriginalRotation = transform.localRotation;
+        }
 
         foreach (BoneNames boneName in BoneDictionary.Keys)
         {
@@ -200,43 +213,51 @@ public class UnityVMDRecorder : MonoBehaviour
 
             Quaternion fixedQuatenion = Quaternion.identity;
             Quaternion vmdRotation = Quaternion.identity;
-            if (boneName == BoneNames.全ての親 && !IgnoreInitialRotation)
+
+            if (boneName == BoneNames.全ての親 && UseAbsoluteCoordinateSystem)
             {
-                vmdRotation = new Quaternion(
-                    -BoneDictionary[boneName].localRotation.x,
-                    BoneDictionary[boneName].localRotation.y,
-                    -BoneDictionary[boneName].localRotation.z,
-                    BoneDictionary[boneName].localRotation.w);
+                fixedQuatenion = BoneDictionary[boneName].rotation;
             }
             else
             {
-                fixedQuatenion = BoneDictionary[boneName].localRotation.MinusRotation(parentOriginalLocalRotation);
-                vmdRotation = new Quaternion(-fixedQuatenion.x, fixedQuatenion.y, -fixedQuatenion.z, fixedQuatenion.w);
+                fixedQuatenion = BoneDictionary[boneName].localRotation;
             }
+
+            if (boneName == BoneNames.全ての親 && IgnoreInitialRotation)
+            {
+                fixedQuatenion = BoneDictionary[boneName].localRotation.MinusRotation(parentOriginalRotation);
+            }
+
+            vmdRotation = new Quaternion(-fixedQuatenion.x, fixedQuatenion.y, -fixedQuatenion.z, fixedQuatenion.w);
+
             localRotationDictionary[boneName].Add(vmdRotation);
 
             Vector3 fixedPosition = Vector3.zero;
             Vector3 vmdPosition = Vector3.zero;
-            if (boneName == BoneNames.全ての親 && !IgnoreInitialPosition)
+
+            if (boneName == BoneNames.全ての親 && UseAbsoluteCoordinateSystem)
             {
-                vmdPosition = new Vector3(
-                -BoneDictionary[boneName].localPosition.x,
-                BoneDictionary[boneName].localPosition.y,
-                -BoneDictionary[boneName].localPosition.z);
+                fixedPosition = BoneDictionary[boneName].position;
             }
             else
             {
-                fixedPosition = new Vector3(
-                    BoneDictionary[boneName].localPosition.x - parentOriginalLocalPosition.x,
-                    BoneDictionary[boneName].localPosition.y - parentOriginalLocalPosition.y,
-                    BoneDictionary[boneName].localPosition.z - parentOriginalLocalPosition.z);
-
-                vmdPosition = new Vector3(-fixedPosition.x, fixedPosition.y, -fixedPosition.z);
+                fixedPosition = BoneDictionary[boneName].localPosition;
             }
+
+            if (boneName == BoneNames.全ての親 && IgnoreInitialPosition)
+            {
+                fixedPosition -= parentOriginalPosition;
+            }
+
+            vmdPosition = new Vector3(-fixedPosition.x, fixedPosition.y, -fixedPosition.z);
 
             if (boneName == BoneNames.全ての親)
             {
                 localPositionDictionary[boneName].Add(vmdPosition * DefaultBoneAmplifier + ParentOfAllOffset);
+            }
+            else
+            {
+                localPositionDictionary[boneName].Add(vmdPosition * DefaultBoneAmplifier);
             }
         }
     }
@@ -311,11 +332,13 @@ public class UnityVMDRecorder : MonoBehaviour
                     binaryWriter.Write(fileTypeBytes, 0, fileTypeBytes.Length);
                     binaryWriter.Write(new byte[fileTypeLength - fileTypeBytes.Length], 0, fileTypeLength - fileTypeBytes.Length);
 
-                    //モーション名の書き込み、Shift_JISで保存
-                    const int motionNameLength = 20;
-                    byte[] motionNameBytes = System.Text.Encoding.GetEncoding(ShiftJIS).GetBytes(modelName);
-                    binaryWriter.Write(motionNameBytes, 0, motionNameBytes.Length);
-                    binaryWriter.Write(new byte[motionNameLength - motionNameBytes.Length], 0, motionNameLength - motionNameBytes.Length);
+                    //モデル名の書き込み、Shift_JISで保存
+                    const int modelNameLength = 20;
+                    byte[] modelNameBytes = System.Text.Encoding.GetEncoding(ShiftJIS).GetBytes(modelName);
+                    //モデル名が長すぎたとき
+                    modelNameBytes = modelNameBytes.Take(Mathf.Min(modelNameLength, modelNameBytes.Length)).ToArray();
+                    binaryWriter.Write(modelNameBytes, 0, modelNameBytes.Length);
+                    binaryWriter.Write(new byte[modelNameLength - modelNameBytes.Length], 0, modelNameLength - modelNameBytes.Length);
 
                     //全ボーンフレーム数の書き込み
                     uint allKeyFrameNumber = (uint)frameNumberSaved * (uint)BoneDictionary.Count;
