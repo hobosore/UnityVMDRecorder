@@ -45,10 +45,10 @@ public class UnityVMDRecorder : MonoBehaviour
     public Dictionary<BoneNames, Transform> BoneDictionary { get; private set; }
     Vector3 parentOriginalPosition = Vector3.zero;
     Quaternion parentOriginalRotation = Quaternion.identity;
-    Dictionary<BoneNames, List<Vector3>> localPositionDictionary = new Dictionary<BoneNames, List<Vector3>>();
-    Dictionary<BoneNames, List<Vector3>> localPositionDictionarySaved = new Dictionary<BoneNames, List<Vector3>>();
-    Dictionary<BoneNames, List<Quaternion>> localRotationDictionary = new Dictionary<BoneNames, List<Quaternion>>();
-    Dictionary<BoneNames, List<Quaternion>> localRotationDictionarySaved = new Dictionary<BoneNames, List<Quaternion>>();
+    Dictionary<BoneNames, List<Vector3>> positionDictionary = new Dictionary<BoneNames, List<Vector3>>();
+    Dictionary<BoneNames, List<Vector3>> positionDictionarySaved = new Dictionary<BoneNames, List<Vector3>>();
+    Dictionary<BoneNames, List<Quaternion>> rotationDictionary = new Dictionary<BoneNames, List<Quaternion>>();
+    Dictionary<BoneNames, List<Quaternion>> rotationDictionarySaved = new Dictionary<BoneNames, List<Quaternion>>();
     //ボーン移動量の補正係数
     //この値は大体の値、改良の余地あり
     const float DefaultBoneAmplifier = 12.5f;
@@ -140,8 +140,8 @@ public class UnityVMDRecorder : MonoBehaviour
         {
             if (BoneDictionary[boneName] == null) { continue; }
 
-            localPositionDictionary.Add(boneName, new List<Vector3>());
-            localRotationDictionary.Add(boneName, new List<Quaternion>());
+            positionDictionary.Add(boneName, new List<Vector3>());
+            rotationDictionary.Add(boneName, new List<Quaternion>());
         }
 
         if (BoneDictionary[BoneNames.左足ＩＫ] != null)
@@ -185,10 +185,10 @@ public class UnityVMDRecorder : MonoBehaviour
                 targetVector = Quaternion.Inverse(transform.rotation) * targetVector;
                 targetVector -= (boneName == BoneNames.左足ＩＫ ? LeftFootIKOffset : RightFootIKOffset);
                 Vector3 ikPosition = new Vector3(-targetVector.x, targetVector.y, -targetVector.z);
-                localPositionDictionary[boneName].Add(ikPosition * DefaultBoneAmplifier);
+                positionDictionary[boneName].Add(ikPosition * DefaultBoneAmplifier);
                 //ikの回転は捨てて回転は全部足首に持たせる
                 Quaternion ikRotation = Quaternion.identity;
-                localRotationDictionary[boneName].Add(ikRotation);
+                rotationDictionary[boneName].Add(ikRotation);
                 continue;
             }
 
@@ -196,18 +196,18 @@ public class UnityVMDRecorder : MonoBehaviour
             {
                 if (boneGhost.GhostDictionary[boneName].ghost == null || !boneGhost.GhostDictionary[boneName].enabled)
                 {
-                    localRotationDictionary[boneName].Add(Quaternion.identity);
-                    localPositionDictionary[boneName].Add(Vector3.zero);
+                    rotationDictionary[boneName].Add(Quaternion.identity);
+                    positionDictionary[boneName].Add(Vector3.zero);
                     continue;
                 }
 
                 Vector3 boneVector = boneGhost.GhostDictionary[boneName].ghost.localPosition;
                 Quaternion boneQuatenion = boneGhost.GhostDictionary[boneName].ghost.localRotation;
-                localRotationDictionary[boneName].Add(new Quaternion(-boneQuatenion.x, boneQuatenion.y, -boneQuatenion.z, boneQuatenion.w));
+                rotationDictionary[boneName].Add(new Quaternion(-boneQuatenion.x, boneQuatenion.y, -boneQuatenion.z, boneQuatenion.w));
 
                 boneVector -= boneGhost.GhostOriginalLocalPositionDictionary[boneName];
 
-                localPositionDictionary[boneName].Add(new Vector3(-boneVector.x, boneVector.y, -boneVector.z) * DefaultBoneAmplifier);
+                positionDictionary[boneName].Add(new Vector3(-boneVector.x, boneVector.y, -boneVector.z) * DefaultBoneAmplifier);
                 continue;
             }
 
@@ -230,7 +230,7 @@ public class UnityVMDRecorder : MonoBehaviour
 
             vmdRotation = new Quaternion(-fixedQuatenion.x, fixedQuatenion.y, -fixedQuatenion.z, fixedQuatenion.w);
 
-            localRotationDictionary[boneName].Add(vmdRotation);
+            rotationDictionary[boneName].Add(vmdRotation);
 
             Vector3 fixedPosition = Vector3.zero;
             Vector3 vmdPosition = Vector3.zero;
@@ -253,11 +253,11 @@ public class UnityVMDRecorder : MonoBehaviour
 
             if (boneName == BoneNames.全ての親)
             {
-                localPositionDictionary[boneName].Add(vmdPosition * DefaultBoneAmplifier + ParentOfAllOffset);
+                positionDictionary[boneName].Add(vmdPosition * DefaultBoneAmplifier + ParentOfAllOffset);
             }
             else
             {
-                localPositionDictionary[boneName].Add(vmdPosition * DefaultBoneAmplifier);
+                positionDictionary[boneName].Add(vmdPosition * DefaultBoneAmplifier);
             }
         }
     }
@@ -286,16 +286,16 @@ public class UnityVMDRecorder : MonoBehaviour
         frameNumberSaved = FrameNumber;
         morphRecorderSaved = morphRecorder;
         FrameNumber = 0;
-        localPositionDictionarySaved = localPositionDictionary;
-        localPositionDictionary = new Dictionary<BoneNames, List<Vector3>>();
-        localRotationDictionarySaved = localRotationDictionary;
-        localRotationDictionary = new Dictionary<BoneNames, List<Quaternion>>();
+        positionDictionarySaved = positionDictionary;
+        positionDictionary = new Dictionary<BoneNames, List<Vector3>>();
+        rotationDictionarySaved = rotationDictionary;
+        rotationDictionary = new Dictionary<BoneNames, List<Quaternion>>();
         foreach (BoneNames boneName in BoneDictionary.Keys)
         {
             if (BoneDictionary[boneName] == null) { continue; }
 
-            localPositionDictionary.Add(boneName, new List<Vector3>());
-            localRotationDictionary.Add(boneName, new List<Quaternion>());
+            positionDictionary.Add(boneName, new List<Vector3>());
+            rotationDictionary.Add(boneName, new List<Quaternion>());
         }
         morphRecorder = new MorphRecorder(transform);
     }
@@ -368,14 +368,14 @@ public class UnityVMDRecorder : MonoBehaviour
                             byte[] frameNumberByte = BitConverter.GetBytes((ulong)i);
                             binaryWriter.Write(frameNumberByte, 0, intByteLength);
 
-                            Vector3 position = localPositionDictionarySaved[boneName][i];
+                            Vector3 position = positionDictionarySaved[boneName][i];
                             byte[] positionX = BitConverter.GetBytes(position.x);
                             binaryWriter.Write(positionX, 0, intByteLength);
                             byte[] positionY = BitConverter.GetBytes(position.y);
                             binaryWriter.Write(positionY, 0, intByteLength);
                             byte[] positionZ = BitConverter.GetBytes(position.z);
                             binaryWriter.Write(positionZ, 0, intByteLength);
-                            Quaternion rotation = localRotationDictionarySaved[boneName][i];
+                            Quaternion rotation = rotationDictionarySaved[boneName][i];
                             byte[] rotationX = BitConverter.GetBytes(rotation.x);
                             binaryWriter.Write(rotationX, 0, intByteLength);
                             byte[] rotationY = BitConverter.GetBytes(rotation.y);
