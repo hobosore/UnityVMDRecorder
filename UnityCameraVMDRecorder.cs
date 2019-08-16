@@ -154,7 +154,6 @@ public class UnityCameraVMDRecorder : MonoBehaviour
     /// VMDを作成する
     /// 呼び出す際は先にStopRecordingを呼び出すこと
     /// </summary>
-    /// <param name="modelName">VMDファイルに記載される専用モデル名</param>
     /// <param name="filePath">保存先の絶対ファイルパス</param>
     public async void SaveVMD(string filePath)
     {
@@ -269,5 +268,17 @@ public class UnityCameraVMDRecorder : MonoBehaviour
             }
         });
         Debug.Log(targetCameraTransform.name + "VMDファイル作成終了");
+    }
+
+    /// <summary>
+    /// VMDを作成する
+    /// 呼び出す際は先にStopRecordingを呼び出すこと
+    /// </summary>
+    /// <param name="filePath">保存先の絶対ファイルパス</param>
+    /// <param name="keyReductionLevel">キーの書き込み頻度を減らして容量を減らす</param>
+    public void SaveVMD(string filePath, int keyReductionLevel)
+    {
+        KeyReductionLevel = keyReductionLevel;
+        SaveVMD(filePath);
     }
 }
