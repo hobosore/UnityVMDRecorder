@@ -23,7 +23,7 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
     /// </summary>
     public bool UseBottomCenter = false;
     /// <summary>
-    /// Unity上のモーフ名に1.まばたきなど番号が振られている場合、除去する
+    /// Unity上のモーフ名に1.まばたきなど番号が振られている場合、番号を除去する
     /// </summary>
     public bool TrimMorphNumber = true;
     public int KeyReductionLevel = 0;
@@ -51,7 +51,7 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
     Dictionary<BoneNames, List<Quaternion>> rotationDictionary = new Dictionary<BoneNames, List<Quaternion>>();
     Dictionary<BoneNames, List<Quaternion>> rotationDictionarySaved = new Dictionary<BoneNames, List<Quaternion>>();
     //ボーン移動量の補正係数
-    //この値は大体の値、改良の余地あり
+    //この値は大体の値、正確ではない
     const float DefaultBoneAmplifier = 12.5f;
 
     public Vector3 ParentOfAllOffset = new Vector3(0, 0, 0);
@@ -187,7 +187,7 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
                 targetVector -= (boneName == BoneNames.左足ＩＫ ? LeftFootIKOffset : RightFootIKOffset);
                 Vector3 ikPosition = new Vector3(-targetVector.x, targetVector.y, -targetVector.z);
                 positionDictionary[boneName].Add(ikPosition * DefaultBoneAmplifier);
-                //ikの回転は捨てて回転は全部足首に持たせる
+                //回転は全部足首に持たせる
                 Quaternion ikRotation = Quaternion.identity;
                 rotationDictionary[boneName].Add(ikRotation);
                 continue;
@@ -755,7 +755,7 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
                 {
                     //情報がなければ次へ
                     if (MorphDrivers[morphName].ValueList.Count == 0) { continue; }
-                    //今、前、後が同じなら不必要なので無効可
+                    //今、前、後が同じなら不必要なので無効化
                     if (i > 0
                         && i < MorphDrivers[morphName].ValueList.Count - 1
                         && MorphDrivers[morphName].ValueList[i].value == MorphDrivers[morphName].ValueList[i - 1].value

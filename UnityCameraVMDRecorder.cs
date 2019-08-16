@@ -26,8 +26,8 @@ public class UnityCameraVMDRecorder : MonoBehaviour
 
     Transform targetCameraTransform = null;
     Camera targetCamera;
-    Vector3 InitialPosition = Vector3.zero;
-    Quaternion InitialRotation = Quaternion.identity;
+    Vector3 initialPosition = Vector3.zero;
+    Quaternion initialRotation = Quaternion.identity;
     int frameNumberSaved = 0;
     List<Vector3> positionsSaved = new List<Vector3>();
     List<Vector3> rotationsSaved = new List<Vector3>();
@@ -43,13 +43,13 @@ public class UnityCameraVMDRecorder : MonoBehaviour
         {
             if (UseAbsoluteCoordinateSystem)
             {
-                InitialPosition = targetCameraTransform.position;
-                InitialRotation = targetCameraTransform.rotation;
+                initialPosition = targetCameraTransform.position;
+                initialRotation = targetCameraTransform.rotation;
             }
             else
             {
-                InitialPosition = targetCameraTransform.localPosition;
-                InitialRotation = targetCameraTransform.localRotation;
+                initialPosition = targetCameraTransform.localPosition;
+                initialRotation = targetCameraTransform.localRotation;
             }
         }
     }
@@ -101,9 +101,9 @@ public class UnityCameraVMDRecorder : MonoBehaviour
     void SaveFrame()
     {
         Vector3 position = UseAbsoluteCoordinateSystem ? targetCameraTransform.position : targetCameraTransform.localPosition;
-        if (IgnoreInitialPosition) { position -= InitialPosition; }
+        if (IgnoreInitialPosition) { position -= initialPosition; }
         Quaternion rotation = UseAbsoluteCoordinateSystem ? targetCameraTransform.rotation : targetCameraTransform.localRotation;
-        if (IgnoreInitialRotation) { rotation = rotation.MinusRotation(InitialRotation); }
+        if (IgnoreInitialRotation) { rotation = rotation.MinusRotation(initialRotation); }
 
         //座標系の変換
         Vector3 vmdPosition = new Vector3(-position.x, position.y, -position.z);
@@ -255,7 +255,6 @@ public class UnityCameraVMDRecorder : MonoBehaviour
                     binaryWriter.Write(selfShadowCount, 0, intByteLength);
 
                     //IKの書き込み
-                    //0フレームにキーフレーム一つだけ置く
                     byte[] ikCount = BitConverter.GetBytes(0);
                     binaryWriter.Write(ikCount, 0, intByteLength);
                 }
