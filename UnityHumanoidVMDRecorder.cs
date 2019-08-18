@@ -321,7 +321,8 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
         await Task.Run(() =>
         {
             //ファイルの書き込み
-            using (BinaryWriter binaryWriter = new BinaryWriter(new FileStream(filePath, FileMode.Create)))
+            using (FileStream fileStream = new FileStream(filePath, FileMode.Create))
+            using (BinaryWriter binaryWriter = new BinaryWriter(fileStream))
             {
                 try
                 {
