@@ -7,4 +7,6 @@ This code enables you to record humanoid/camera animations in unity into .vmd fi
 Added function to record morph animations.
 
 MMD上ではセンターボーンが足元にあるモデルに対して補正できるように (2019/08/06)  
-Supported models whose center bone in MMD is at its foot.
+Supported models whose center bone in MMD is at its foot.  
+  
+MIT License
