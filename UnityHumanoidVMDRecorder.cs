@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 public class UnityHumanoidVMDRecorder : MonoBehaviour
 {
     public bool UseParentOfAll = true;
+    public bool UseGrooveAsParentOfAll = false;
     /// <summary>
     /// 全ての親の座標・回転を絶対座標系で計算する
     /// UseParentOfAllがTrueでないと意味がない
@@ -31,6 +32,7 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
     public int FrameNumber { get; private set; } = 0;
     int frameNumberSaved = 0;
     const float FPSs = 0.03333f;
+    const string GrooveNameString = "グルーブ";
     public enum BoneNames
     {
         全ての親, センター, 左足ＩＫ, 右足ＩＫ, 上半身, 上半身2, 首, 頭,
@@ -370,7 +372,15 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
                     LoopWithBoneCondition((boneName, i) => 
                     {
                         const int boneNameLength = 15;
-                        string boneNameString = boneName.ToString();
+                        string boneNameString = "";
+                        if (boneName == BoneNames.全ての親 && UseGrooveAsParentOfAll)
+                        {
+                            boneNameString = GrooveNameString;
+                        }
+                        else
+                        {
+                            boneNameString = boneName.ToString();
+                        }
                         byte[] boneNameBytes = System.Text.Encoding.GetEncoding(ShiftJIS).GetBytes(boneNameString);
                         binaryWriter.Write(boneNameBytes, 0, boneNameBytes.Length);
                         binaryWriter.Write(new byte[boneNameLength - boneNameBytes.Length], 0, boneNameLength - boneNameBytes.Length);

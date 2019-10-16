@@ -100,9 +100,17 @@ public class UnityCameraVMDRecorder : MonoBehaviour
 
     void SaveFrame()
     {
-        Vector3 position = UseAbsoluteCoordinateSystem ? targetCameraTransform.position : targetCameraTransform.localPosition;
+        Vector3 position = Vector3.zero;
+        if (targetCameraTransform != null)
+        {
+            position = UseAbsoluteCoordinateSystem ? targetCameraTransform.position : targetCameraTransform.localPosition;
+        }
         if (IgnoreInitialPosition) { position -= initialPosition; }
-        Quaternion rotation = UseAbsoluteCoordinateSystem ? targetCameraTransform.rotation : targetCameraTransform.localRotation;
+        Quaternion rotation = Quaternion.identity;
+        if (targetCameraTransform != null)
+        {
+            rotation = UseAbsoluteCoordinateSystem ? targetCameraTransform.rotation : targetCameraTransform.localRotation;
+        }
         if (IgnoreInitialRotation) { rotation = rotation.MinusRotation(initialRotation); }
 
         //座標系の変換
