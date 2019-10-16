@@ -10,7 +10,7 @@ MMD上ではセンターボーンが足元にあるモデルに対して補正�
 Supported models whose center bone in MMD is at its foot.  
   
 全ての親をセンターに移すオプションを追加  
-MMD上で全ての親を編集できるように(2019/10/16)
+MMD上で全ての親を編集できるように(2019/10/16)  
 Added UseCenterAsParentOfAll(public bool).
   
   
