@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 public class UnityHumanoidVMDRecorder : MonoBehaviour
 {
     public bool UseParentOfAll = true;
-    public bool UseCenterAsParentOfAll = false;
+    public bool UseCenterAsParentOfAll = true;
     /// <summary>
     /// 全ての親の座標・回転を絶対座標系で計算する
     /// UseParentOfAllがTrueでないと意味がない
