@@ -129,16 +129,7 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
                 //{ BoneNames.右つま先,   (animator.GetBoneTransform(HumanBodyBones.RightToes))}
         };
 
-        if (UseAbsoluteCoordinateSystem)
-        {
-            parentInitialPosition = transform.position;
-            parentInitialRotation = transform.rotation;
-        }
-        else
-        {
-            parentInitialPosition = transform.localPosition;
-            parentInitialRotation = transform.localRotation;
-        }
+        SetInitialPositionAndRotation();
 
         foreach (BoneNames boneName in BoneDictionary.Keys)
         {
@@ -266,6 +257,20 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
         }
     }
 
+    void SetInitialPositionAndRotation()
+    {
+        if (UseAbsoluteCoordinateSystem)
+        {
+            parentInitialPosition = transform.position;
+            parentInitialRotation = transform.rotation;
+        }
+        else
+        {
+            parentInitialPosition = transform.localPosition;
+            parentInitialRotation = transform.localRotation;
+        }
+    }
+
     public static void SetFPS(int fps)
     {
         Time.fixedDeltaTime = 1 / (float)fps;
@@ -274,7 +279,11 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
     /// <summary>
     /// レコーディングを開始または再開
     /// </summary>
-    public void StartRecording() { IsRecording = true; }
+    public void StartRecording()
+    {
+        SetInitialPositionAndRotation();
+        IsRecording = true;
+    }
 
     /// <summary>
     /// レコーディングを一時停止
@@ -370,7 +379,7 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
                     binaryWriter.Write(allKeyFrameNumberByte, 0, intByteLength);
 
                     //人ボーンの書き込み
-                    LoopWithBoneCondition((boneName, i) => 
+                    LoopWithBoneCondition((boneName, i) =>
                     {
                         const int boneNameLength = 15;
                         string boneNameString = boneName.ToString();
