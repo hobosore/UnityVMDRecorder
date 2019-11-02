@@ -41,16 +41,7 @@ public class UnityCameraVMDRecorder : MonoBehaviour
 
         if (targetCameraTransform != null)
         {
-            if (UseAbsoluteCoordinateSystem)
-            {
-                initialPosition = targetCameraTransform.position;
-                initialRotation = targetCameraTransform.rotation;
-            }
-            else
-            {
-                initialPosition = targetCameraTransform.localPosition;
-                initialRotation = targetCameraTransform.localRotation;
-            }
+            SetInitialPositionAndRotation();
         }
     }
 
@@ -66,6 +57,20 @@ public class UnityCameraVMDRecorder : MonoBehaviour
         {
             SaveFrame();
             FrameNumber++;
+        }
+    }
+
+    void SetInitialPositionAndRotation()
+    {
+        if (UseAbsoluteCoordinateSystem)
+        {
+            initialPosition = targetCameraTransform.position;
+            initialRotation = targetCameraTransform.rotation;
+        }
+        else
+        {
+            initialPosition = targetCameraTransform.localPosition;
+            initialRotation = targetCameraTransform.localRotation;
         }
     }
 
@@ -136,7 +141,11 @@ public class UnityCameraVMDRecorder : MonoBehaviour
     /// <summary>
     /// レコーディングを開始または再開
     /// </summary>
-    public void StartRecording() { IsRecording = true; }
+    public void StartRecording()
+    {
+        SetInitialPositionAndRotation();
+        IsRecording = true;
+    }
 
     /// <summary>
     /// レコーディングを一時停止
