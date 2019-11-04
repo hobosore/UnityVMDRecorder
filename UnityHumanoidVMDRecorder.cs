@@ -176,8 +176,36 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
 
             if (boneName == BoneNames.右足ＩＫ || boneName == BoneNames.左足ＩＫ)
             {
-                Vector3 targetVector = BoneDictionary[boneName].position - transform.position;
-                targetVector = Quaternion.Inverse(transform.rotation) * targetVector;
+                Vector3 targetVector = Vector3.zero;
+                if (UseCenterAsParentOfAll)
+                {
+                    if ((!UseAbsoluteCoordinateSystem && transform.parent != null) && IgnoreInitialPosition )
+                    {
+                        targetVector
+                            = Quaternion.Inverse(transform.parent.rotation)
+                            * (BoneDictionary[boneName].position - transform.parent.position)
+                            - parentInitialPosition;
+                    }
+                    else if ((!UseAbsoluteCoordinateSystem && transform.parent != null) && !IgnoreInitialPosition)
+                    {
+                        targetVector
+                            = Quaternion.Inverse(transform.parent.rotation)
+                            * (BoneDictionary[boneName].position - transform.parent.position);
+                    }
+                    else if ((UseAbsoluteCoordinateSystem || transform.parent == null) && IgnoreInitialPosition)
+                    {
+                        targetVector = BoneDictionary[boneName].position - parentInitialPosition;
+                    }
+                    else if ((UseAbsoluteCoordinateSystem || transform.parent == null) && transform.parent && !IgnoreInitialPosition)
+                    {
+                        targetVector = BoneDictionary[boneName].position;
+                    }
+                }
+                else
+                {
+                    targetVector = BoneDictionary[boneName].position - transform.position;
+                    targetVector = Quaternion.Inverse(transform.rotation) * targetVector;
+                }
                 targetVector -= (boneName == BoneNames.左足ＩＫ ? LeftFootIKOffset : RightFootIKOffset);
                 Vector3 ikPosition = new Vector3(-targetVector.x, targetVector.y, -targetVector.z);
                 positionDictionary[boneName].Add(ikPosition * DefaultBoneAmplifier);
