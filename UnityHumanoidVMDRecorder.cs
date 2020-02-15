@@ -27,7 +27,7 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
     /// Unity上のモーフ名に1.まばたきなど番号が振られている場合、番号を除去する
     /// </summary>
     public bool TrimMorphNumber = true;
-    public int KeyReductionLevel = 0;
+    public int KeyReductionLevel = 3;
     public bool IsRecording { get; private set; } = false;
     public int FrameNumber { get; private set; } = 0;
     int frameNumberSaved = 0;
@@ -46,6 +46,8 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
         //左つま先, 右つま先は情報付けると足首の回転、位置との矛盾が生じかねない
     }
     //コンストラクタにて初期化
+    //全てのボーンを名前で引く辞書
+    Dictionary<string, Transform> transformDictionary = new Dictionary<string, Transform>();
     public Dictionary<BoneNames, Transform> BoneDictionary { get; private set; }
     Vector3 parentInitialPosition = Vector3.zero;
     Quaternion parentInitialRotation = Quaternion.identity;
@@ -129,6 +131,20 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
                 //{ BoneNames.右つま先,   (animator.GetBoneTransform(HumanBodyBones.RightToes))}
         };
 
+        makeTransformDictionary(transform, transformDictionary);
+
+        void makeTransformDictionary(Transform rootBone, Dictionary<string, Transform> dictionary)
+        {
+            if (dictionary.ContainsKey(rootBone.name)) { return; }
+            dictionary.Add(rootBone.name, rootBone);
+            foreach (Transform childT in rootBone)
+            {
+                makeTransformDictionary(childT, dictionary);
+            }
+        }
+
+        EnforceInitialPose(animator, true);
+
         SetInitialPositionAndRotation();
 
         foreach (BoneNames boneName in BoneDictionary.Keys)
@@ -152,6 +168,50 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
         boneGhost = new BoneGhost(animator, BoneDictionary, UseBottomCenter);
         morphRecorder = new MorphRecorder(transform);
     }
+
+    void EnforceInitialPose(Animator animator, bool aPose = false)
+    {
+        if (animator == null)
+        {
+            UnityEngine.Debug.Log("EnforceInitialPose");
+            UnityEngine.Debug.Log("Animatorがnullです");
+            return;
+        }
+
+        const int APoseDegree = 30;
+
+        Vector3 position = animator.transform.position;
+        Quaternion rotation = animator.transform.rotation;
+        animator.transform.position = Vector3.zero;
+        animator.transform.rotation = Quaternion.identity;
+
+        int count = animator.avatar.humanDescription.skeleton.Length;
+        for (int i = 0; i < count; i++)
+        {
+            if (!transformDictionary.ContainsKey(animator.avatar.humanDescription.skeleton[i].name))
+            {
+                continue;
+            }
+
+            transformDictionary[animator.avatar.humanDescription.skeleton[i].name].localPosition
+                = animator.avatar.humanDescription.skeleton[i].position;
+            transformDictionary[animator.avatar.humanDescription.skeleton[i].name].localRotation
+                = animator.avatar.humanDescription.skeleton[i].rotation;
+        }
+
+        animator.transform.position = position;
+        animator.transform.rotation = rotation;
+
+        if (aPose && animator.isHuman)
+        {
+            Transform leftUpperArm = animator.GetBoneTransform(HumanBodyBones.LeftUpperArm);
+            Transform rightUpperArm = animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
+            if (leftUpperArm == null || rightUpperArm == null) { return; }
+            leftUpperArm.Rotate(animator.transform.forward, APoseDegree, Space.World);
+            rightUpperArm.Rotate(animator.transform.forward, -APoseDegree, Space.World);
+        }
+    }
+
 
     private void FixedUpdate()
     {
