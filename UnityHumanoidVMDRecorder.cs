@@ -787,7 +787,7 @@ public class UnityHumanoidVMDRecorder : MonoBehaviour
         {
             foreach (BoneNames boneName in GhostDictionary.Keys)
             {
-                if (GhostDictionary[boneName].ghost == null || !GhostDictionary[boneName].enabled) { return; }
+                if (GhostDictionary[boneName].ghost == null || !GhostDictionary[boneName].enabled) { continue; }
                 Quaternion transQuaternion = boneDictionary[boneName].rotation * Quaternion.Inverse(OriginalRotationDictionary[boneName]);
                 GhostDictionary[boneName].ghost.rotation = transQuaternion * GhostOriginalRotationDictionary[boneName];
                 if (boneName == BoneNames.センター && UseBottomCenter)
