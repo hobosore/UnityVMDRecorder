@@ -1,8 +1,14 @@
 # UnityVMDRecorder
 
+## About
 Unity上の人・カメラアニメーションをランタイムで記録してvmd(MMDのアニメーションファイル)に保存するためのコードです。  
 This code enables you to record humanoid/camera animations in unity into .vmd file (MikuMikuDance).  
-  
+
+## Usage
+(2:11~)  
+https://www.nicovideo.jp/watch/sm35513082
+
+## Update 
 モーフも記録できるようにしました。 (2019/08/05)  
 Added function to record morph animations.
 
